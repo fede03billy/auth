@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os, string, secrets
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, send_from_directory
 from postmarker.core import PostmarkClient
 from flask_redis import FlaskRedis
 
@@ -51,8 +51,8 @@ def send_otp_mail(otp, email):
 
 ### Flask App
 @app.route('/')
-def hello_world():
-    return generate_otp()
+def root():
+    return send_from_directory('static', 'index.html')
 
 @app.route('/login', methods=['POST'])
 def login():
