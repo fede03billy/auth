@@ -22,6 +22,21 @@ def generate_otp():
     # Generate the OTP
     return ''.join(secrets.choice(characters) for i in range(length))
 
+## Send OTP Mail
+def send_otp_mail(otp, email):
+    # Fetch the sender email from an environment variable
+    sender = f'otp@{os.getenv("DOMAIN_NAME", "example.com")}'
+
+    # Send the OTP email
+    response = postmark.emails.send(
+        From=sender,
+        To=email,
+        Subject=f'Your OTP is {otp}',
+        TextBody=f'Your OTP is {otp}, valid for 3 minutes. If you did not request this, please ignore this email.'
+    )
+
+    return response
+
 ### Flask App
 app = Flask(__name__)
 
