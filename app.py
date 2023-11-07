@@ -58,6 +58,18 @@ def root():
 def login():
     # This endpoint expects form data with an "email" field
     email = request.form.get('email')
+
+    # Check if there's also a code field
+    code = request.form.get('code')
+    app.logger.info({code})
+    if code:
+        # If there's a code field, check if it's valid
+        if redis_client.get(email) == code:
+            # If the code is valid, return a success message in HTML
+            return render_template_string('<p class="text-sm text-green-500 max-w-sm mb-4">OTP verified successfully.</p>'), 200
+        else:
+            # If the code is invalid, return an error response in HTML
+            return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">Invalid OTP. Reload the page and retry.</p>'), 400
     
     if not email:
         # If no email is provided in the request, return an error response in HTML
@@ -72,9 +84,9 @@ def login():
     # Send the OTP email
     try:
         send_otp_mail(otp, email)
-        # Return a success message in HTML
-        return render_template_string('<p>OTP sent successfully. Check your email.</p>'), 200
+        # Return a success message in HTML with new button to submit again (try this out)
+        return render_template_string('<p class="text-sm text-gray-500 max-w-sm mb-4">OTP sent successfully. Check your email.</p><input type="text" pattern="\d{6}" name="code" placeholder="OTP" required class="px-4 py-2 max-w-sm mb-4 border-2 rounded"></input>'), 200
     except Exception as e:
         # In case of an error sending the email, log it and return an error response in HTML
         app.logger.error({e})
-        return render_template_string('<p>Failed to send OTP email.</p>'), 500
+        return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">Failed to send OTP email. Reload the page and retry.</p>'), 500
