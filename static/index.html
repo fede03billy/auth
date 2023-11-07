@@ -8,14 +8,21 @@
     <script src="https://unpkg.com/htmx.org@1.9.7"
         integrity="sha384-EAzY246d6BpbWR7sQ8+WEm40J8c3dHFsqC58IgPlh4kMbRRI6P6WA+LA/qGAyAu8"
         crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-    <main>
-        <form hx-post="/login" hx-target="#info" hx-swap="innerHTML">
-            <input type="email" name="email" placeholder="Email" required>
+<body class="m-0 p-0 w-full h-full min-h-screen">
+    <main class="w-full h-full min-h-screen flex justify-center items-center">
+        <form hx-post="/login" hx-target="#info" hx-swap="innerHTML" hx-trigger="submit"
+            class="w-fit h-fit flex flex-col p-4 bg-white rounded-[1.25rem] drop-shadow">
+            <h1 class="text-2xl font-bold mb-2">Login</h1>
+            <p class="text-sm text-gray-500 max-w-sm mb-4">
+                Input your email address to receive a One Time Password (OTP) to login.
+            </p>
+            <input type="email" name="email" placeholder="Email" required
+                class="px-4 py-2 max-w-sm mb-4 border-2 rounded">
             <div id="info"></div>
-            <button type="submit">Login</button>
+            <button type="submit" class="text-white bg-black rounded px-4 py-2 max-w-sm">Login</button>
     </main>
 </body>
 
