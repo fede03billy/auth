@@ -13,16 +13,17 @@
 
 <body class="m-0 p-0 w-full h-full min-h-screen">
     <main class="w-full h-full min-h-screen flex justify-center items-center">
-        <form hx-post="/login" hx-target="#info" hx-swap="innerHTML" hx-trigger="submit"
-            class="w-fit h-fit flex flex-col p-4 bg-white rounded-[1.25rem] drop-shadow">
+        <div class="w-fit h-fit flex flex-col p-4 bg-white rounded-[1.25rem] drop-shadow">
             <h1 class="text-2xl font-bold mb-2">Login</h1>
-            <p class="text-sm text-gray-500 max-w-sm mb-4">
-                Input your email address to receive a One Time Password (OTP) to login.
-            </p>
-            <input type="email" name="email" placeholder="Email" required
-                class="px-4 py-2 max-w-sm mb-4 border-2 rounded">
-            <div id="info"></div>
-            <button type="submit" class="text-white bg-black rounded px-4 py-2 max-w-sm">Login</button>
+            <form hx-post="/login" hx-swap="outerHTML" class="flex flex-col">
+                <p class="text-sm text-gray-500 max-w-sm mb-4">
+                    Input your email address to receive a One Time Password (OTP) to login.
+                </p>
+                <input type="email" name="email" placeholder="Email" required
+                    class="px-4 py-2 max-w-sm mb-4 border-2 rounded">
+                <button type="submit" class="text-white bg-black rounded px-4 py-2 max-w-sm">Generate OTP</button>
+            </form>
+        </div>
     </main>
 </body>
 
