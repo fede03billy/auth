@@ -152,7 +152,7 @@ def login():
             f'<form hx-post="/login-otp" hx-swap="outerHTML" class="flex flex-col">'
             f'<p class="text-sm text-gray-500 max-w-sm mb-4">Input your email address to receive a One Time Password (OTP) to login.</p>'
             f'<input type="email" name="email" placeholder="Email" required value={email} class="px-4 py-2 max-w-sm mb-4 border-2 rounded">'
-            f'<input type="text" pattern="\d{"{"+str(otp_length)+"}"}" name="code" required placeholder="OTP (Check your email)" class="px-4 py-2 max-w-sm mb-4 border-2 rounded">'
+            f'<input type="text" pattern="\\d{"{"+str(otp_length)+"}"}" name="code" required placeholder="OTP (Check your email)" class="px-4 py-2 max-w-sm mb-4 border-2 rounded">'
             f'<button type="submit" class="text-white bg-black rounded px-4 py-2 max-w-sm">Login</button>'
             f'</form>'
         ), 200

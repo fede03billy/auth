@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5001:5000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL_OTP="redis://redis:6379/0"
+      - REDIS_URL_AUTH="redis://redis:6379/1"
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
