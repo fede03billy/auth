@@ -51,15 +51,15 @@ def generate_auth_token():
 
 ## Save OTP on redis
 def save_otp(otp, email):
-    # Save the OTP
+    # Save the email as Key for the OTP
     redis_otp_client.set(email, otp, ex=180)  # Set the OTP to expire in 3 minutes
 
     return True
 
 ## Save Auth Token on redis
 def save_auth_token(token, email):
-    # Save the Auth Token
-    redis_auth_client.set(email, token, ex=60*60*24*7)  # Set the Auth Token to expire in 7 days
+    # Save the Auth Token as Key for the email
+    redis_auth_client.set(token, email, ex=60*60*24*7)  # Set the Auth Token to expire in 7 days
 
     return True
 
@@ -78,11 +78,57 @@ def send_otp_mail(otp, email):
 
     return response
 
+## Verify Auth Token
+def verify_auth_token(token):
+    # Check if the token is valid
+    email = redis_auth_client.get(token) or None
+
+    if email:
+        # If the token is valid, return the email
+        return email.decode('utf-8')
+    else:
+        # If the token is invalid, return None
+        return None
+
+## Refresh Auth Token
+def refresh_auth_token(token):
+    # Check if the token is valid
+    email = redis_auth_client.get(token) or None
+
+    if email:
+        email = email.decode('utf-8')
+        # If the token is valid, generate a new token and save it
+        new_token = generate_auth_token()
+        save_auth_token(new_token, email)
+
+        # Delete the old token
+        redis_auth_client.delete(token)
+
+        # Return the new token
+        return new_token
+    else:
+        # If the token is invalid, return None
+        return None
+
+
 ### Flask App
+## Root route
+## Handles the check for existing auth token cookie and serves the login form if not logged in
 @app.route('/')
 def root():
+    # Check for existing auth token cookie
+    auth_token = request.cookies.get('auth_token') or None
+
+    if auth_token:
+        email = verify_auth_token(auth_token)
+        if email:
+            # If the auth token is valid, return a success message in HTML
+            return render_template_string(f'You are already logged in as {email}'), 200
+
     return send_from_directory('static', 'index.html')
 
+## Login route
+## Handles the login form submission and sends the OTP email
 @app.route('/login', methods=['POST'])
 def login():
     # This endpoint expects form data with an "email" field
@@ -106,15 +152,17 @@ def login():
             f'<form hx-post="/login-otp" hx-swap="outerHTML" class="flex flex-col">'
             f'<p class="text-sm text-gray-500 max-w-sm mb-4">Input your email address to receive a One Time Password (OTP) to login.</p>'
             f'<input type="email" name="email" placeholder="Email" required value={email} class="px-4 py-2 max-w-sm mb-4 border-2 rounded">'
-            f'<input type="text" pattern="\d{"{"+str(otp_length)+"}"}" name="code" required placeholder="OTP" class="px-4 py-2 max-w-sm mb-4 border-2 rounded">'
+            f'<input type="text" pattern="\d{"{"+str(otp_length)+"}"}" name="code" required placeholder="OTP (Check your email)" class="px-4 py-2 max-w-sm mb-4 border-2 rounded">'
             f'<button type="submit" class="text-white bg-black rounded px-4 py-2 max-w-sm">Login</button>'
             f'</form>'
         ), 200
     except Exception as e:
         # In case of an error sending the email, log it and return an error response in HTML
         app.logger.error({e})
-        return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">Failed to send OTP email. Reload the page and retry.</p>'), 500
+        return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">Failed to send OTP email. Reload the page and retry.</p>'), 200
 
+## Login OTP route
+## Handles the OTP form submission and sets the auth token cookie
 @app.route('/login-otp', methods=['POST'])
 def login_otp():
     email = request.form.get('email') or None
@@ -124,7 +172,7 @@ def login_otp():
 
     if not redis_otp:
         # If there's no OTP saved, return an error response in HTML
-        return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">OTP expired. Reload the page and retry.</p>'), 400
+        return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">OTP is wrong or expired. Reload the page and retry.</p>'), 200
     else:
         # Decode bytes to string if necessary
         if isinstance(redis_otp, bytes):
@@ -143,3 +191,66 @@ def login_otp():
         else:
             # If the code is invalid, return an error response in HTML
             return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">Invalid OTP. Reload the page and retry.</p>'), 200
+    else:
+        # If there's no code field, return an error response in HTML
+        return render_template_string('<p class="text-sm text-red-300 max-w-sm mb-4">OTP is required. Reload the page and retry.</p>'), 200
+    
+## Auth Tokens route
+## Handles the request for all the auth tokens in the database to allow third party apps to check for valid tokens
+@app.route('/auth-tokens', methods=['GET'])
+def auth_tokens():
+    # Get the AUTH_SECRET_KEY from the token bearer in the request headers
+    auth_secret_key = request.headers.get('Authorization') or None
+
+    # Parse the secret key from the token bearer
+    if auth_secret_key:
+        auth_secret_key = auth_secret_key.split(' ')[1] or None
+
+    if auth_secret_key == os.getenv('AUTH_SECRET_KEY'):
+        # If the secret key is valid, return all the auth tokens in a JSON response
+        auth_tokens = redis_auth_client.keys('*') or None # Output is [... , b'ElRUVOlmLFHuzGEN55rFueaHyey7A8J9', b'vr0dvx8tRLy8WEQsD4XAV6PSVYR7GgeY']
+        # Decode bytes for each entry in the array
+        if auth_tokens:
+            auth_tokens = [token.decode('utf-8') for token in auth_tokens]
+            return auth_tokens, 200
+        else:
+            return [], 200
+    else:
+        # If the secret key is invalid, return a 403 error
+        return 'Forbidden', 403
+
+## Check Auth route
+## Handles the request to check if an auth token is valid and refresh it, for third party apps as middleware
+## This expects to receive the auth token in the request  Authorization header or in the cookie, split it from the token bearer, and get back the new auth token in a JSON response
+@app.route('/check-auth', methods=['GET'])
+def check_auth():
+    # Get the auth token from the request headers
+    auth_token = request.headers.get('Authorization') or None
+
+    if not auth_token:
+        # Look for the auth token in the cookies
+        auth_token = request.cookies.get('auth_token') or None
+
+    # Parse the auth token from the token bearer
+    if auth_token:
+        auth_token = auth_token.split(' ')[1] or None
+    else:
+        # If there's no auth token, return a 403 error
+        return 'Forbidden', 403
+
+    # Check if the auth token is valid
+    email = redis_auth_client.get(auth_token) or None
+
+    if email:
+        # If the auth token is valid, refresh it
+        new_auth_token = refresh_auth_token(auth_token)
+
+        # Set the new auth token as a cookie
+        response = make_response({'auth_token': new_auth_token})
+        response.set_cookie('auth_token', new_auth_token, max_age=60*60*24*7)
+
+        # Return the new auth token in a JSON response and as a cookie
+        return response, 200
+    else:
+        # If the auth token is invalid, return a 403 error
+        return 'Forbidden', 403
