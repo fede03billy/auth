@@ -15,10 +15,10 @@ To run this project, you will need to add the following environment variables to
 | Var Name                | Required | Default Value           | Explanation                                         |
 |-------------------------|----------|-------------------------|-----------------------------------------------------|
 | POSTMARK_SERVER_TOKEN   | Yes      | N/A                     | Your Postmark server token for sending emails.      |
-| REDIS_URL_OTP           | Yes      | `redis://localhost:6379/0` | The Redis server URL for storing OTPs.             |
-| REDIS_URL_AUTH          | Yes      | `redis://localhost:6379/1` | The Redis server URL for storing auth tokens.       |
-| CODE_LENGTH             | Yes      | `6`                     | The length of the OTP code.                         |
-| TOKEN_LENGTH            | Yes      | `32`                    | The length of the auth token.                       |
+| REDIS_URL_OTP           | No       | `redis://localhost:6379/0` | The Redis server URL for storing OTPs.             |
+| REDIS_URL_AUTH          | No       | `redis://localhost:6379/1` | The Redis server URL for storing auth tokens.       |
+| CODE_LENGTH             | No       | `6`                     | The length of the OTP code.                         |
+| TOKEN_LENGTH            | No       | `32`                    | The length of the auth token.                       |
 | DOMAIN_NAME             | Yes      | `example.com`           | Your domain name for the sender email address.      |
 | AUTH_SECRET_KEY         | Yes      | N/A                     | A secret key required to retrieve all auth tokens.  |
 
