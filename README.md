@@ -12,19 +12,15 @@ In order to run this container you'll need docker and docker-compose installed.
 # Environment Variables
 To run this project, you will need to add the following environment variables to your .env file
 
-- **POSTMARK_SERVER_TOKEN** - Your Postmark server token for sending emails.
-
-- **REDIS_URL_OTP** - The Redis server URL for storing OTPs, default is `redis://localhost:6379/0`.
-
-- **REDIS_URL_AUTH** - The Redis server URL for storing auth tokens, default is `redis://localhost:6379/1`.
-
-- **CODE_LENGTH** - The length of the OTP code, default is `6`.
-
-- **TOKEN_LENGTH** - The length of the auth token, default is `32`.
-
-- **DOMAIN_NAME** - Your domain name for the sender email address, default is `example.com`.
-
-- **AUTH_SECRET_KEY** - A secret key required to retrieve all auth tokens.
+| Var Name                | Required | Default Value           | Explanation                                         |
+|-------------------------|----------|-------------------------|-----------------------------------------------------|
+| POSTMARK_SERVER_TOKEN   | Yes      | N/A                     | Your Postmark server token for sending emails.      |
+| REDIS_URL_OTP           | Yes      | `redis://localhost:6379/0` | The Redis server URL for storing OTPs.             |
+| REDIS_URL_AUTH          | Yes      | `redis://localhost:6379/1` | The Redis server URL for storing auth tokens.       |
+| CODE_LENGTH             | Yes      | `6`                     | The length of the OTP code.                         |
+| TOKEN_LENGTH            | Yes      | `32`                    | The length of the auth token.                       |
+| DOMAIN_NAME             | Yes      | `example.com`           | Your domain name for the sender email address.      |
+| AUTH_SECRET_KEY         | Yes      | N/A                     | A secret key required to retrieve all auth tokens.  |
 
 ### Optional
 You can also set the following optional variables:
