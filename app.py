@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os, string, secrets 
 from flask import Flask, request, render_template_string, send_from_directory, make_response
 from postmarker.core import PostmarkClient
-from flask_redis import FlaskRedis
+import redis
 
 ### Setup
 load_dotenv()  # This will load the .env file variables into the environment
@@ -13,13 +13,10 @@ postmark = PostmarkClient(server_token=server_token)
 app = Flask(__name__)
 
 # Configuration for Redis OTP client using database 0
-app.config['REDIS_URL_OTP'] = os.getenv('REDIS_URL_OTP', 'redis://localhost:6379/0')
-redis_otp_client = FlaskRedis(app, config_prefix='REDIS_URL_OTP')
+redis_otp_client = redis.from_url(os.getenv('REDIS_URL_OTP'))
 
 # Configuration for Redis Auth Token client using database 1
-app.config['REDIS_URL_AUTH'] = os.getenv('REDIS_URL_AUTH', 'redis://localhost:6379/1')
-redis_auth_client = FlaskRedis(app, config_prefix='REDIS_URL_AUTH')
-
+redis_auth_client = redis.from_url(os.getenv('REDIS_URL_AUTH'))
 # Code lengths
 otp_length = int(os.getenv('CODE_LENGTH', 6))
 token_length = int(os.getenv('TOKEN_LENGTH', 32))
@@ -124,6 +121,11 @@ def root():
         if email:
             # If the auth token is valid, return a success message in HTML
             return render_template_string(f'You are already logged in as {email}'), 200
+        else:
+            # If the auth token is invalid, remove the old cookie and send the login pagin in HTML
+            response = make_response(send_from_directory('static', 'index.html'))
+            response.set_cookie('auth_token', '', expires=0)
+            return response, 200
 
     return send_from_directory('static', 'index.html')
 
