@@ -1,0 +1,11 @@
+# Dockerfile.redis
+FROM redis:alpine
+
+# Copy the backup script into the container
+COPY redis_backup.sh redis_backup.sh
+
+# Make sure the script is executable
+RUN chmod +x redis_backup.sh
+
+# Run Redis server and the backup script
+CMD ["sh", "-c", "redis-server",  "--appendonly", "no", "&", "redis_backup.sh"]
