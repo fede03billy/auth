@@ -18,8 +18,11 @@ redis_otp_client = redis.from_url(os.getenv('REDIS_URL_OTP'))
 # Configuration for Redis Auth Token client using database 1
 redis_auth_client = redis.from_url(os.getenv('REDIS_URL_AUTH'))
 # Code lengths
-otp_length = int(os.getenv('CODE_LENGTH', 6))
-token_length = int(os.getenv('TOKEN_LENGTH', 32))
+otp_length = int(os.getenv('OTP_CODE_LENGTH', 6))
+otp_duration = int(os.getenv('OTP_CODE_EXPIRY', 300)) # 5 minutes in seconds
+token_length = int(os.getenv('AUTH_TOKEN_LENGTH', 32))
+token_duration = int(os.getenv('AUTH_TOKEN_EXPIRY', 604800))  # 7 days in seconds
+token_name = os.getenv('AUTH_TOKEN_COOKIE_NAME', 'auth_token')
 
 ### Functions
 ## Generate OTP
@@ -49,28 +52,28 @@ def generate_auth_token():
 ## Save OTP on redis
 def save_otp(otp, email):
     # Save the email as Key for the OTP
-    redis_otp_client.set(email, otp, ex=180)  # Set the OTP to expire in 3 minutes
+    redis_otp_client.set(email, otp, ex=otp_duration) 
 
     return True
 
 ## Save Auth Token on redis
 def save_auth_token(token, email):
     # Save the Auth Token as Key for the email
-    redis_auth_client.set(token, email, ex=60*60*24*7)  # Set the Auth Token to expire in 7 days
+    redis_auth_client.set(token, email, ex=token_duration)  # Set the Auth Token to expire in 7 days
 
     return True
 
 ## Send OTP Mail
 def send_otp_mail(otp, email):
     # Fetch the sender email from an environment variable
-    sender = f'otp@{os.getenv("DOMAIN_NAME", "example.com")}'
+    sender = f'otp@{os.getenv("DOMAIN_NAME")}'
 
     # Send the OTP email
     response = postmark.emails.send(
         From=sender,
         To=email,
         Subject=f'Your OTP is {otp}',
-        TextBody=f'Your OTP is {otp}, valid for 3 minutes. If you did not request this, please ignore this email.'
+        TextBody=f'Your OTP is {otp}, valid for {otp_duration / 60} minutes. If you did not request this, please ignore this email.'
     )
 
     return response
@@ -114,7 +117,7 @@ def refresh_auth_token(token):
 @app.route('/')
 def root():
     # Check for existing auth token cookie
-    auth_token = request.cookies.get('auth_token') or None
+    auth_token = request.cookies.get(token_name) or None
 
     if auth_token:
         email = verify_auth_token(auth_token)
@@ -124,7 +127,7 @@ def root():
         else:
             # If the auth token is invalid, remove the old cookie and send the login pagin in HTML
             response = make_response(send_from_directory('static', 'index.html'))
-            response.set_cookie('auth_token', '', expires=0)
+            response.set_cookie(token_name, '', expires=0)
             return response, 200
 
     return send_from_directory('static', 'index.html')
@@ -188,7 +191,7 @@ def login_otp():
 
             # Create a response and set the auth token as a cookie
             response = make_response(render_template_string('<p class="text-sm text-green-500 max-w-sm mb-4">OTP verified successfully.</p>'))
-            response.set_cookie('auth_token', auth_token, max_age=60*60*24*7)  # Cookie will expire in 7 days
+            response.set_cookie(token_name, auth_token, max_age=token_duration)
             return response, 200
         else:
             # If the code is invalid, return an error response in HTML
@@ -231,7 +234,7 @@ def check_auth():
 
     if not auth_token:
         # Look for the auth token in the cookies
-        auth_token = request.cookies.get('auth_token') or None
+        auth_token = request.cookies.get(token_name) or None
 
     # Parse the auth token from the token bearer
     if auth_token:
@@ -249,7 +252,7 @@ def check_auth():
 
         # Set the new auth token as a cookie
         response = make_response({'auth_token': new_auth_token})
-        response.set_cookie('auth_token', new_auth_token, max_age=60*60*24*7)
+        response.set_cookie(token_name, new_auth_token, max_age=token_duration)
 
         # Return the new auth token in a JSON response and as a cookie
         return response, 200
