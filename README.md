@@ -18,6 +18,7 @@ To run this project, you will need to add the following environment variables to
 
 | Var Name                | Required | Default Value           | Explanation                                         |
 |-------------------------|----------|-------------------------|-----------------------------------------------------|
+| PORT                    | Yes      | N/A                     | The port on the container exposes.                  |
 | POSTMARK_SERVER_TOKEN   | Yes      | N/A                     | Your Postmark server token for sending emails.      |
 | DOMAIN_NAME             | Yes      | N/A                     | Your domain name for the sender email address.      |
 | AUTH_SECRET_KEY         | Yes      | N/A                     | A secret key required to retrieve all auth tokens.  |
